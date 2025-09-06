@@ -1,560 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ULMD Airdrop Eligibility Check</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #7e22ce;
-            --secondary: #3b82f6;
-            --accent: #f97316;
-            --light: #f3f4f6;
-            --dark: #1f2937;
-            --gradient: linear-gradient(90deg, var(--primary), var(--secondary));
-            --success: #10b981;
-            --error: #ef4444;
-            --warning: #f59e0b;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #0f172a;
-            color: var(--light);
-            overflow-x: hidden;
-            line-height: 1.6;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            padding: 40px 0;
-            background: radial-gradient(circle at top right, rgba(126, 34, 206, 0.2), transparent 30%),
-                        radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.2), transparent 30%);
-            margin-bottom: 30px;
-            border-radius: 15px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-
-        .logo-img {
-            width: 50px;
-            height: 50px;
-            background: var(--gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(126, 34, 206, 0.7);
-            }
-            70% {
-                transform: scale(1.05);
-                box-shadow: 0 0 0 10px rgba(126, 34, 206, 0);
-            }
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(126, 34, 206, 0);
-            }
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            color: #d1d5db;
-            margin-bottom: 30px;
-        }
-
-        .card {
-            background: rgba(30, 41, 59, 0.8);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 30px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(126, 34, 206, 0.2);
-        }
-
-        .card h2 {
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-            color: var(--secondary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card h2 i {
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .tier-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .tier-item {
-            background: rgba(15, 23, 42, 0.5);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            border: 1px solid rgba(126, 34, 206, 0.2);
-        }
-
-        .tier-item h3 {
-            color: var(--accent);
-            margin-bottom: 5px;
-        }
-
-        .tier-amount {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .wallet-section {
-            text-align: center;
-        }
-
-        .wallet-address {
-            font-family: monospace;
-            background: rgba(15, 23, 42, 0.5);
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            word-break: break-all;
-            border: 1px solid rgba(126, 34, 206, 0.2);
-        }
-
-        .btn {
-            background: var(--gradient);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 50px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 1rem;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(126, 34, 206, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .status.success {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--success);
-            border: 1px solid var(--success);
-        }
-
-        .status.error {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--error);
-            border: 1px solid var(--error);
-        }
-
-        .status.info {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--secondary);
-            border: 1px solid var(--secondary);
-        }
-
-        .status.warning {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--warning);
-            border: 1px solid var(--warning);
-        }
-
-        .contract-info {
-            margin-top: 30px;
-            font-size: 0.9rem;
-            color: #9ca3af;
-            text-align: center;
-        }
-
-        .loader {
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            display: inline-block;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .contract-code {
-            background: rgba(15, 23, 42, 0.5);
-            border-radius: 10px;
-            padding: 20px;
-            overflow-x: auto;
-            margin: 20px 0;
-            border: 1px solid rgba(126, 34, 206, 0.2);
-        }
-
-        .contract-code pre {
-            color: #d1d5db;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            .tier-list {
-                grid-template-columns: 1fr;
-            }
-            
-            .contract-code {
-                padding: 15px;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Unlimited Dollar Airdrop</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="snap.css">
 </head>
 <body>
+  <div class="section">
     <div class="container">
-        <header>
-            <div class="logo">
-                <div class="logo-img">ULMD</div>
-                <span>Unlimited Dollar</span>
-            </div>
-            <h1>Airdrop Eligibility Check</h1>
-            <p class="subtitle">Connect your wallet to check if you're eligible for the ULMD airdrop</p>
-        </header>
-
-        <div class="card">
-            <h2><i class="fas fa-gift"></i> Airdrop Tiers</h2>
-            <p>Your airdrop amount is determined by your percentage of total supply at snapshot time:</p>
-            
-            <div class="tier-list">
-                <div class="tier-item">
-                    <h3>Less than 1%</h3>
-                    <p class="tier-amount">10,000 ULMD</p>
-                </div>
-                <div class="tier-item">
-                    <h3>1% to 5%</h3>
-                    <p class="tier-amount">15,000 ULMD</p>
-                </div>
-                <div class="tier-item">
-                    <h3>5% to 10%</h3>
-                    <p class="tier-amount">100,000 ULMD</p>
-                </div>
-                <div class="tier-item">
-                    <h3>10% to 20%</h3>
-                    <p class="tier-amount">105,000 ULMD</p>
-                </div>
-                <div class="tier-item">
-                    <h3>20% to 40%</h3>
-                    <p class="tier-amount">200,000 ULMD</p>
-                </div>
-                <div class="tier-item">
-                    <h3>40% to 60%</h3>
-                    <p class="tier-amount">205,000 ULMD</p>
-                </div>
-                <div class="tier-item">
-                    <h3>60% to 100%</h3>
-                    <p class="tier-amount">500,000 ULMD</p>
-                </div>
-            </div>
-            
-            <p><strong>Note:</strong> Eligibility is automatically determined by the smart contract based on your holdings at the snapshot block.</p>
+      <nav class="level mb-4">
+        <div class="level-left">
+          <div class="level-item">
+            <img src="logo.png" alt="Unlimited Dollar Logo" class="logo" />
+          </div>
         </div>
+        <div class="level-right">
+          <div class="level-item">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="networkName" class="mr-3">Not Connected</span>
+            <button id="connectWallet" class="button is-link">Connect Wallet</button>
+          </div>
+        </div>
+      </nav>
 
-        <div class="card wallet-section">
-            <h2><i class="fas fa-wallet"></i> Check Eligibility</h2>
-            <p>Connect your wallet to check if you're eligible for the airdrop</p>
-            
-            <button id="connectWallet" class="btn">
-                <i class="fas fa-plug"></i> Connect Wallet
-            </button>
-            
-            <div id="walletInfo" style="display: none;">
-                <div class="wallet-address">
-                    Connected: <span id="walletAddress"></span>
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="card airdrop-card">
+            <header class="card-header">
+              <p class="card-header-title title is-4">Unlimited Dollar Airdrop</p>
+            </header>
+            <div class="card-content">
+              <div class="columns">
+                <!-- Wallet Info -->
+                <div class="column is-half">
+                  <h3 class="subtitle is-6 mb-2">Wallet Information</h3>
+                  <div class="box">
+                    <div class="columns is-multiline is-mobile">
+                      <div class="column is-half">
+                        <strong>Address:</strong>
+                        <br><span id="walletAddress">Not Connected</span>
+                      </div>
+                      <div class="column is-half">
+                        <strong>UDOLLAR Balance:</strong>
+                        <br><span id="tokenBalance">0</span> UDOLLAR
+                      </div>
+                      <div class="column is-half">
+                        <strong>Snapshot Balance:</strong>
+                        <br><span id="snapshotBalance">0</span> UDOLLAR
+                      </div>
+                      <div class="column is-half">
+                        <strong>Eligibility:</strong>
+                        <br><span id="eligibilityStatus">Not Verified</span>
+                      </div>
+                    </div>
+                    <button id="takeSnapshot" class="button is-warning is-small mt-2" disabled>Take Snapshot</button>
+                  </div>
                 </div>
-                
-                <button id="checkEligibility" class="btn">
-                    <i class="fas fa-search"></i> Check Eligibility
-                </button>
-                
-                <div id="eligibilityResult" class="status" style="display: none;"></div>
-                
-                <button id="claimAirdrop" class="btn" style="display: none; margin-top: 15px;">
-                    <i class="fas fa-download"></i> Claim Airdrop
-                </button>
+                <!-- Airdrop Tiers -->
+                <div class="column is-half">
+                  <h3 class="subtitle is-6 mb-2">Airdrop Tiers</h3>
+                  <div class="box">
+                    <div class="tiers">
+                      <div class="tier"><span>200k – 500k</span><span>50k UDOLLAR</span></div>
+                      <div class="tier"><span>500k – 1M</span><span>150k UDOLLAR</span></div>
+                      <div class="tier"><span>1M – 2M</span><span>500k UDOLLAR</span></div>
+                      <div class="tier"><span>2M – 5M</span><span>1M UDOLLAR</span></div>
+                      <div class="tier"><span>>5M</span><span>Max Cap: 5M UDOLLAR</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reward -->
+              <div class="box mt-3">
+                <h3 class="subtitle is-6 mb-2">Your Reward</h3>
+                <p>Claimable Amount: <span id="claimableAmount">0</span> UDOLLAR</p>
+                <button id="claimButton" class="button is-success mt-2" disabled>Connect Wallet</button>
+              </div>
+
+              <div id="status" class="status"></div>
             </div>
+          </div>
         </div>
+      </div>
 
-        <div class="card">
-            <h2><i class="fas fa-file-code"></i> Smart Contract</h2>
-            <p>The eligibility check is handled by our smart contract on the Pulse Chain network:</p>
-            
-            <div class="contract-code">
-                <pre>// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-interface IERC20 {
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(address to, uint256 amount) external returns (bool);
-}
-
-contract ULMD_Airdrop {
-    address public owner;
-    IERC20 public ulmdToken;
-    
-    uint256 public snapshotBlock;
-    uint256 public totalSupply;
-    uint256 public totalAirdropAmount = 500_000_000 * 10**18; // 500 million ULMD
-    
-    mapping(address => bool) public hasClaimed;
-    mapping(address => bool) public isEligible;
-    mapping(address => uint256) public airdropAmount;
-    
-    event AirdropClaimed(address indexed recipient, uint256 amount);
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
-        _;
-    }
-    
-    constructor(address _ulmdToken, uint256 _snapshotBlock) {
-        owner = msg.sender;
-        ulmdToken = IERC20(_ulmdToken);
-        snapshotBlock = _snapshotBlock;
-        totalSupply = ulmdToken.totalSupply();
-    }
-    
-    function calculateAirdropAmount(address _user) public view returns (uint256) {
-        if (hasClaimed[_user] || !isEligible[_user]) return 0;
-        
-        // Get user's balance at snapshot block (simplified for example)
-        uint256 userBalance = ulmdToken.balanceOf(_user);
-        uint256 userPercentage = (userBalance * 100) / totalSupply;
-        
-        if (userPercentage < 1) {
-            return 10_000 * 10**18;
-        } else if (userPercentage >= 1 && userPercentage < 5) {
-            return 15_000 * 10**18;
-        } else if (userPercentage >= 5 && userPercentage < 10) {
-            return 100_000 * 10**18;
-        } else if (userPercentage >= 10 && userPercentage < 20) {
-            return 105_000 * 10**18;
-        } else if (userPercentage >= 20 && userPercentage < 40) {
-            return 200_000 * 10**18;
-        } else if (userPercentage >= 40 && userPercentage < 60) {
-            return 205_000 * 10**18;
-        } else if (userPercentage >= 60) {
-            return 500_000 * 10**18;
-        }
-        
-        return 0;
-    }
-    
-    function checkEligibility(address _user) public returns (bool) {
-        if (hasClaimed[_user]) return false;
-        
-        uint256 amount = calculateAirdropAmount(_user);
-        if (amount > 0) {
-            isEligible[_user] = true;
-            airdropAmount[_user] = amount;
-            return true;
-        }
-        
-        return false;
-    }
-    
-    function claimAirdrop() external {
-        require(!hasClaimed[msg.sender], "Already claimed");
-        require(isEligible[msg.sender], "Not eligible");
-        
-        uint256 amount = airdropAmount[msg.sender];
-        require(amount > 0, "No airdrop available");
-        require(ulmdToken.transfer(msg.sender, amount), "Transfer failed");
-        
-        hasClaimed[msg.sender] = true;
-        emit AirdropClaimed(msg.sender, amount);
-    }
-    
-    function withdrawRemaining() external onlyOwner {
-        uint256 balance = ulmdToken.balanceOf(address(this));
-        require(ulmdToken.transfer(owner, balance), "Transfer failed");
-    }
-    
-    function setEligibility(address[] calldata _users, bool[] calldata _eligibility) external onlyOwner {
-        require(_users.length == _eligibility.length, "Arrays must be same length");
-        
-        for (uint256 i = 0; i < _users.length; i++) {
-            isEligible[_users[i]] = _eligibility[i];
-        }
-    }
-}</pre>
-            </div>
-            
-            <p class="contract-info">
-                Contract Address: <span id="contractAddress">0x1234...5678</span> | 
-                Network: Pulse Chain
-            </p>
-        </div>
+      <footer class="mt-4 has-text-centered">
+        <p>Current Time (UTC): <span id="currentTime">--:--:--</span></p>
+      </footer>
     </div>
 
-    <script>
-        // Simulated contract interaction
-        document.getElementById('connectWallet').addEventListener('click', connectWallet);
-        document.getElementById('checkEligibility').addEventListener('click', checkEligibility);
-        document.getElementById('claimAirdrop').addEventListener('click', claimAirdrop);
+    <!-- Refresh -->
+    <div class="refresh-section">
+      <button id="refreshBtn" class="refresh-button" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2v6h-6"/>
+          <path d="M3 12a9 9 0 0 1 9-9c2.39 0 4.57.94 6.21 2.47L21 8"/>
+          <path d="M21 12a9 9 0 1 1-9-9"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
-        async function connectWallet() {
-            try {
-                // Simulate wallet connection
-                const mockAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
-                
-                document.getElementById('walletAddress').textContent = mockAddress;
-                document.getElementById('walletInfo').style.display = 'block';
-                document.getElementById('connectWallet').style.display = 'none';
-                
-                showStatus('Wallet connected successfully!', 'success');
-            } catch (error) {
-                console.error('Error connecting wallet:', error);
-                showStatus('Error connecting wallet. Please try again.', 'error');
-            }
-        }
-
-        async function checkEligibility() {
-            try {
-                const checkBtn = document.getElementById('checkEligibility');
-                checkBtn.disabled = true;
-                checkBtn.innerHTML = '<span class="loader"></span> Checking...';
-                
-                // Simulate contract call
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                // Simulate eligibility check (random for demo)
-                const isEligible = Math.random() > 0.4;
-                
-                if (isEligible) {
-                    // Simulate airdrop amount based on tier
-                    const tiers = [10000, 15000, 100000, 105000, 200000, 205000, 500000];
-                    const amount = tiers[Math.floor(Math.random() * tiers.length)];
-                    
-                    showStatus(`You are eligible for ${amount.toLocaleString()} ULMD!`, 'success');
-                    document.getElementById('claimAirdrop').style.display = 'inline-flex';
-                } else {
-                    showStatus('You are not eligible for the airdrop based on the snapshot criteria.', 'error');
-                }
-                
-                checkBtn.disabled = false;
-                checkBtn.innerHTML = '<i class="fas fa-search"></i> Check Eligibility';
-            } catch (error) {
-                console.error('Error checking eligibility:', error);
-                showStatus('Error checking eligibility. Please try again.', 'error');
-                
-                const checkBtn = document.getElementById('checkEligibility');
-                checkBtn.disabled = false;
-                checkBtn.innerHTML = '<i class="fas fa-search"></i> Check Eligibility';
-            }
-        }
-
-        async function claimAirdrop() {
-            try {
-                const claimBtn = document.getElementById('claimAirdrop');
-                claimBtn.disabled = true;
-                claimBtn.innerHTML = '<span class="loader"></span> Claiming...';
-                
-                // Simulate blockchain transaction
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                
-                // Mock successful claim
-                showStatus('Airdrop claimed successfully! Tokens have been sent to your wallet.', 'success');
-                
-                claimBtn.style.display = 'none';
-            } catch (error) {
-                console.error('Error claiming airdrop:', error);
-                showStatus('Error claiming airdrop. Please try again.', 'error');
-                
-                const claimBtn = document.getElementById('claimAirdrop');
-                claimBtn.disabled = false;
-                claimBtn.innerHTML = '<i class="fas fa-download"></i> Claim Airdrop';
-            }
-        }
-
-        function showStatus(message, type) {
-            const statusEl = document.getElementById('eligibilityResult');
-            statusEl.textContent = message;
-            statusEl.className = `status ${type}`;
-            statusEl.style.display = 'block';
-        }
-
-        // Display contract address with ellipsis
-        const contractAddress = "0x1234567890123456789012345678901234567890";
-        document.getElementById('contractAddress').textContent = `${contractAddress.substring(0, 6)}...${contractAddress.substring(contractAddress.length - 4)}`;
-    </script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="snap.js"></script>
 </body>
 </html>
