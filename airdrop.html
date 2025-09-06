@@ -3,10 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Unlimited Dollar Airdrop</title>
+  <title>Unlimited Dollar (ULMD) Airdrop</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="snap.css">
+  <style>
+    .logo { max-height: 60px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: red; display: inline-block; margin-right: 6px; }
+    .status-dot.connected { background: green; }
+    .tiers .tier { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; }
+    .tiers .tier:last-child { border-bottom: none; }
+    .status.success { color: green; margin-top: 10px; }
+    .status.error { color: red; margin-top: 10px; }
+    .refresh-section { position: fixed; bottom: 20px; right: 20px; }
+    .refresh-button { background: #3273dc; border: none; border-radius: 50%; padding: 10px; color: #fff; cursor: pointer; }
+    .refresh-button:hover { background: #2759a5; }
+  </style>
 </head>
 <body>
   <div class="section">
@@ -14,7 +26,7 @@
       <nav class="level mb-4">
         <div class="level-left">
           <div class="level-item">
-            <img src="logo.png" alt="Unlimited Dollar Logo" class="logo" style="max-height:60px; width:auto;" />
+            <img src="https://gateway.pinata.cloud/ipfs/your_logo_cid" alt="ULMD Logo" class="logo" />
           </div>
         </div>
         <div class="level-right">
@@ -30,11 +42,10 @@
         <div class="column is-8">
           <div class="card airdrop-card">
             <header class="card-header">
-              <p class="card-header-title title is-4">Unlimited Dollar Airdrop</p>
+              <p class="card-header-title title is-4">Unlimited Dollar (ULMD) Airdrop</p>
             </header>
             <div class="card-content">
               <div class="columns">
-                <!-- Wallet Info -->
                 <div class="column is-half">
                   <h3 class="subtitle is-6 mb-2">Wallet Information</h3>
                   <div class="box">
@@ -44,12 +55,12 @@
                         <br><span id="walletAddress">Not Connected</span>
                       </div>
                       <div class="column is-half">
-                        <strong>UDOLLAR Balance:</strong>
-                        <br><span id="tokenBalance">0</span> UDOLLAR
+                        <strong>ULMD Balance:</strong>
+                        <br><span id="tokenBalance">0</span> ULMD
                       </div>
                       <div class="column is-half">
                         <strong>Snapshot Balance:</strong>
-                        <br><span id="snapshotBalance">0</span> UDOLLAR
+                        <br><span id="snapshotBalance">0</span> ULMD
                       </div>
                       <div class="column is-half">
                         <strong>Eligibility:</strong>
@@ -59,25 +70,23 @@
                     <button id="takeSnapshot" class="button is-warning is-small mt-2" disabled>Take Snapshot</button>
                   </div>
                 </div>
-                <!-- Airdrop Tiers -->
                 <div class="column is-half">
                   <h3 class="subtitle is-6 mb-2">Airdrop Tiers</h3>
                   <div class="box">
                     <div class="tiers">
-                      <div class="tier"><span>200k – 500k</span><span>50k UDOLLAR</span></div>
-                      <div class="tier"><span>500k – 1M</span><span>150k UDOLLAR</span></div>
-                      <div class="tier"><span>1M – 2M</span><span>500k UDOLLAR</span></div>
-                      <div class="tier"><span>2M – 5M</span><span>1M UDOLLAR</span></div>
-                      <div class="tier"><span>>5M</span><span>Max Cap: 5M UDOLLAR</span></div>
+                      <div class="tier"><span>≥ 200k ULMD</span><span>10k ULMD</span></div>
+                      <div class="tier"><span>≥ 500k ULMD</span><span>30k ULMD</span></div>
+                      <div class="tier"><span>≥ 1M ULMD</span><span>100k ULMD</span></div>
+                      <div class="tier"><span>≥ 5M ULMD</span><span>250k ULMD</span></div>
+                      <div class="tier"><span>≥ 10M ULMD</span><span>500k ULMD</span></div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Reward -->
               <div class="box mt-3">
                 <h3 class="subtitle is-6 mb-2">Your Reward</h3>
-                <p>Claimable Amount: <span id="claimableAmount">0</span> UDOLLAR</p>
+                <p>Claimable Amount: <span id="claimableAmount">0</span> ULMD</p>
                 <button id="claimButton" class="button is-success mt-2" disabled>Connect Wallet</button>
               </div>
 
@@ -86,13 +95,14 @@
           </div>
         </div>
       </div>
-
       <footer class="mt-4 has-text-centered">
         <p>Current Time (UTC): <span id="currentTime">--:--:--</span></p>
+        <div class="socials mt-2">
+          <a href="https://t.me/unlimited_dollar_meme" target="_blank">Telegram</a> |
+          <a href="https://x.com/unlmted_dollar" target="_blank">X</a>
+        </div>
       </footer>
     </div>
-
-    <!-- Refresh -->
     <div class="refresh-section">
       <button id="refreshBtn" class="refresh-button" title="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
