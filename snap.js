@@ -1,126 +1,209 @@
-// Unlimited Dollar Airdrop Logic
-const tokenAddress = "0xYourUnlimitedDollarTokenAddress"; // placeholder
-const tokenABI = [
-  "function balanceOf(address owner) view returns (uint256)",
-  "function decimals() view returns (uint8)"
-];
+// ====== CONFIGURATION ======
+const AIRDROP_CONTRACT_ADDRESS = "0xYourAirdropContract";
+const TOKEN_CONTRACT_ADDRESS   = "0xYourTokenContract";
+const LEDGER_EXPLORER_URL      = "https://scan.mypinata.cloud/ipfs/bafybeih3olry3is4e4lzm7rus5l3h6zrphcal5a7ayfkhzm5oivjro2cp4/#//tx/";
 
-// Config
-const MIN_HOLD = ethers.utils.parseUnits("200000", 18);
-const MAX_REWARD = ethers.utils.parseUnits("5000000", 18); // 5M cap
-const rewardTiers = [
-  { min: "200000", max: "500000", reward: "50000" },
-  { min: "500000", max: "1000000", reward: "150000" },
-  { min: "1000000", max: "2000000", reward: "500000" },
-  { min: "2000000", max: "5000000", reward: "1000000" }
-];
+// ====== ABIs (simplified placeholders) ======
+const AIRDROP_ABI = [];
 
-let provider, signer, tokenContract, currentAccount;
+const TOKEN_ABI = [];
 
+// ====== GLOBAL STATE ======
+let provider, signer, userAddress;
+let airdrop, token;
+
+// ====== DOM ELEMENTS ======
+const networkNameElem     = document.getElementById("networkName");
+const statusDotElem       = document.getElementById("statusDot");
+const connectWalletBtn    = document.getElementById("connectWallet");
+const walletAddressElem   = document.getElementById("walletAddress");
+const tokenBalanceElem    = document.getElementById("tokenBalance");
+const snapshotBalanceElem = document.getElementById("snapshotBalance");
+const eligibilityElem     = document.getElementById("eligibilityStatus");
+const takeSnapshotBtn     = document.getElementById("takeSnapshot");
+const claimableAmountElem = document.getElementById("claimableAmount");
+const claimButtonElem     = document.getElementById("claimButton");
+const statusElem          = document.getElementById("status");
+const currentTimeElem     = document.getElementById("currentTime");
+
+// ====== INIT ======
+window.addEventListener("DOMContentLoaded", () => {
+  updateCurrentTime();
+  setInterval(updateCurrentTime, 1000);
+
+  connectWalletBtn.addEventListener("click", connectWallet);
+  if (takeSnapshotBtn) takeSnapshotBtn.addEventListener("click", handleTakeSnapshot);
+  if (claimButtonElem) claimButtonElem.addEventListener("click", handleClaimAirdrop);
+
+  const refreshBtn = document.getElementById("refreshBtn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => location.reload(), 200);
+    });
+  }
+
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", () => location.reload());
+    window.ethereum.on("chainChanged", () => location.reload());
+  }
+});
+
+// ====== WALLET CONNECTION ======
 async function connectWallet() {
   if (!window.ethereum) {
-    alert("MetaMask not detected!");
+    updateStatus("MetaMask not detected.", "error");
     return;
   }
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = provider.getSigner();
-  currentAccount = await signer.getAddress();
+  try {
+    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+    await provider.send("eth_requestAccounts", []);
+    signer = provider.getSigner();
+    userAddress = await signer.getAddress();
 
-  document.getElementById("walletAddress").innerText = currentAccount;
-  document.getElementById("connectWallet").innerText = "Connected";
+    // Hide "Not Connected" and show short address
+    walletAddressElem.textContent = shortenAddress(userAddress);
+    networkNameElem.textContent = "";
+    connectWalletBtn.disabled = true;
+    connectWalletBtn.textContent = "Connected";
+    statusDotElem.classList.add("connected");
 
-  tokenContract = new ethers.Contract(tokenAddress, tokenABI, provider);
+    airdrop = new ethers.Contract(AIRDROP_CONTRACT_ADDRESS, AIRDROP_ABI, signer);
+    token   = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
 
-  await refreshWalletInfo();
-  document.getElementById("takeSnapshot").disabled = false;
+    const network = await provider.getNetwork();
+    networkNameElem.textContent = network.chainId === 97453 ? "Sidra Chain" : "Unknown Network";
+
+    await updateWalletInfo();
+  } catch (err) {
+    updateStatus("Wallet connection failed.", "error");
+    console.error(err);
+  }
 }
 
-async function refreshWalletInfo() {
-  if (!currentAccount) return;
+// ====== WALLET INFO ======
+async function updateWalletInfo() {
+  if (!provider || !signer || !userAddress) return;
 
   try {
-    const bal = await tokenContract.balanceOf(currentAccount);
-    const balFormatted = ethers.utils.formatUnits(bal, 18);
-    document.getElementById("tokenBalance").innerText = balFormatted;
+    const [rawBalance, decimals, rawSnapshotBalance] = await Promise.all([
+      token.balanceOf(userAddress),
+      token.decimals(),
+      airdrop.snapshotBalances(userAddress)
+    ]);
 
-    updateStatus("Wallet connected. Balance loaded.");
-  } catch (e) {
-    console.error(e);
-    updateStatus("Error fetching balance");
-  }
-}
+    const balance = ethers.utils.formatUnits(rawBalance, decimals);
+    tokenBalanceElem.textContent = parseFloat(balance).toLocaleString();
 
-function takeSnapshot() {
-  if (!currentAccount) return;
+    const snapshotBalance = ethers.utils.formatUnits(rawSnapshotBalance, decimals);
+    snapshotBalanceElem.textContent = parseFloat(snapshotBalance).toLocaleString();
 
-  const balance = document.getElementById("tokenBalance").innerText;
-  const balanceWei = ethers.utils.parseUnits(balance, 18);
-
-  if (balanceWei.lt(MIN_HOLD)) {
-    document.getElementById("eligibilityStatus").innerText = "Not Eligible";
-    updateStatus("You must hold at least 200k UDOLLAR to be eligible.");
-    return;
-  }
-
-  localStorage.setItem(`snapshot_${currentAccount}`, balance);
-  document.getElementById("snapshotBalance").innerText = balance;
-
-  document.getElementById("eligibilityStatus").innerText = "Eligible";
-
-  // calculate reward
-  let reward = calcReward(balanceWei);
-  let rewardTokens = ethers.utils.formatUnits(reward, 18);
-
-  document.getElementById("claimableAmount").innerText = rewardTokens;
-  document.getElementById("claimButton").disabled = false;
-  document.getElementById("claimButton").innerText = "Claim Airdrop";
-  updateStatus("Snapshot taken. You can now claim.");
-}
-
-function calcReward(balanceWei) {
-  let reward = ethers.BigNumber.from(0);
-
-  for (let tier of rewardTiers) {
-    const min = ethers.utils.parseUnits(tier.min, 18);
-    const max = ethers.utils.parseUnits(tier.max, 18);
-    if (balanceWei.gte(min) && balanceWei.lte(max)) {
-      reward = ethers.utils.parseUnits(tier.reward, 18);
-      break;
+    const eligibilityStatus = parseFloat(balance) >= 200000;
+    if (rawSnapshotBalance.gt(0)) {
+      eligibilityElem.textContent = "Verified";
+      takeSnapshotBtn.disabled = true;
+      takeSnapshotBtn.textContent = "Snapshot Taken";
+    } else if (eligibilityStatus) {
+      eligibilityElem.textContent = "Eligible - Not Verified";
+      takeSnapshotBtn.disabled = false;
+      takeSnapshotBtn.textContent = "Take Snapshot (Verify)";
+    } else {
+      eligibilityElem.textContent = "Not Eligible";
+      takeSnapshotBtn.disabled = true;
     }
+
+    const rawClaimable = await airdrop.getClaimableAmount(userAddress);
+    const claimable = ethers.utils.formatUnits(rawClaimable, decimals);
+    claimableAmountElem.textContent = parseFloat(claimable).toLocaleString();
+
+    const hasClaimed = await airdrop.hasClaimed(userAddress);
+    const paused = await airdrop.paused();
+
+    if (hasClaimed) {
+      claimButtonElem.disabled = true;
+      claimButtonElem.textContent = "Already Claimed";
+    } else if (paused) {
+      claimButtonElem.disabled = true;
+      claimButtonElem.textContent = "Claiming Paused";
+    } else if (!eligibilityStatus || rawSnapshotBalance.eq(0)) {
+      claimButtonElem.disabled = true;
+      claimButtonElem.textContent = "Not Eligible";
+    } else if (rawClaimable.eq(0)) {
+      claimButtonElem.disabled = true;
+      claimButtonElem.textContent = "No Airdrop";
+    } else {
+      claimButtonElem.disabled = false;
+      claimButtonElem.textContent = "Claim Airdrop";
+    }
+  } catch (err) {
+    tokenBalanceElem.textContent = "0";
+    snapshotBalanceElem.textContent = "0";
+    updateStatus("Failed to update wallet info.", "error");
+    console.error(err);
   }
+}
 
-  if (balanceWei.gt(ethers.utils.parseUnits("5000000", 18))) {
-    reward = MAX_REWARD;
+// ====== SNAPSHOT ======
+async function handleTakeSnapshot() {
+  try {
+    const rawSnapshotBalance = await airdrop.snapshotBalances(userAddress);
+    if (rawSnapshotBalance.gt(0)) {
+      updateStatus("Already verified.", "error");
+      return;
+    }
+
+    takeSnapshotBtn.disabled = true;
+    updateStatus("Taking snapshot...", "success");
+
+    const tx = await airdrop.takeSnapshot(userAddress);
+    const receipt = await tx.wait();
+
+    updateStatus(`Snapshot taken! <a href="${LEDGER_EXPLORER_URL}${receipt.transactionHash}" target="_blank">View</a>`, "success");
+    await updateWalletInfo();
+  } catch (err) {
+    updateStatus("Snapshot failed.", "error");
+    console.error(err);
+    takeSnapshotBtn.disabled = false;
   }
-
-  return reward;
 }
 
-async function claimAirdrop() {
-  if (!currentAccount) return;
-  // Here you would call the claim function of your airdrop contract
-  updateStatus("Claim transaction submitted (demo placeholder).");
+// ====== CLAIM ======
+async function handleClaimAirdrop() {
+  try {
+    claimButtonElem.disabled = true;
+    updateStatus("Processing claim...", "success");
+
+    const tx = await airdrop.claim();
+    const receipt = await tx.wait();
+
+    updateStatus(`Airdrop claimed! <a href="${LEDGER_EXPLORER_URL}${receipt.transactionHash}" target="_blank">View</a>`, "success");
+    await updateWalletInfo();
+  } catch (err) {
+    updateStatus("Claim failed.", "error");
+    console.error(err);
+    claimButtonElem.disabled = false;
+  }
 }
 
-// Status display
-function updateStatus(msg) {
-  document.getElementById("status").innerText = msg;
+// ====== HELPERS ======
+function shortenAddress(addr) {
+  return addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "";
 }
 
-// Time updater
-setInterval(() => {
+function updateStatus(msg, type) {
+  statusElem.innerHTML = msg;
+  statusElem.className = "status";
+  if (type === "success") statusElem.classList.add("success");
+  if (type === "error") statusElem.classList.add("error");
+}
+
+function updateCurrentTime() {
   const now = new Date();
-  document.getElementById("currentTime").innerText = now.toUTCString();
-}, 1000);
-
-// Event listeners
-document.getElementById("connectWallet").addEventListener("click", connectWallet);
-document.getElementById("takeSnapshot").addEventListener("click", takeSnapshot);
-document.getElementById("claimButton").addEventListener("click", claimAirdrop);
-
-// Refresh button
-document.getElementById("refreshBtn").addEventListener("click", () => {
-  window.scrollTo({top: 0, left: 0, behavior: "smooth"});
-  setTimeout(() => location.reload(), 200);
-});
+  const formatted = now.getUTCFullYear() + "-" +
+    String(now.getUTCMonth() + 1).padStart(2, "0") + "-" +
+    String(now.getUTCDate()).padStart(2, "0") + " " +
+    String(now.getUTCHours()).padStart(2, "0") + ":" +
+    String(now.getUTCMinutes()).padStart(2, "0") + ":" +
+    String(now.getUTCSeconds()).padStart(2, "0");
+  currentTimeElem.textContent = formatted;
+}
