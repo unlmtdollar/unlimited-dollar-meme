@@ -72,7 +72,7 @@ async function connectWallet() {
     token   = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
 
     const network = await provider.getNetwork();
-    networkNameElem.textContent = network.chainId === 97453 ? "Sidra Chain" : "Unknown Network";
+    networkNameElem.textContent = network.chainId === 369 ? "Pulse Chain" : "Unknown Network";
 
     await updateWalletInfo();
   } catch (err) {
