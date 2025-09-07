@@ -1,7 +1,7 @@
 // ====== CONFIGURATION ======
-const AIRDROP_CONTRACT_ADDRESS = "0xYourAirdropContract";
-const TOKEN_CONTRACT_ADDRESS   = "0xYourTokenContract";
-const LEDGER_EXPLORER_URL      = "https://scan.mypinata.cloud/ipfs/bafybeih3olry3is4e4lzm7rus5l3h6zrphcal5a7ayfkhzm5oivjro2cp4/#//tx/";
+const AIRDROP_CONTRACT_ADDRESS = "0x9D841b25589EeC6E598D8FfE1d607e247F42269b";
+const TOKEN_CONTRACT_ADDRESS   = "0xBBcAEC10D4AFa4E6Dd43359A23e568E3305209AF";
+const LEDGER_EXPLORER_URL      = "https://testnet.bscscan.com/txs";
 
 // ====== ABIs (simplified placeholders) ======
 const AIRDROP_ABI = [];
