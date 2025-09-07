@@ -1,7 +1,7 @@
 // ====== CONFIGURATION ======
-const AIRDROP_CONTRACT_ADDRESS = "0x9D841b25589EeC6E598D8FfE1d607e247F42269b";
-const TOKEN_CONTRACT_ADDRESS   = "0xBBcAEC10D4AFa4E6Dd43359A23e568E3305209AF";
-const LEDGER_EXPLORER_URL      = "https://testnet.bscscan.com/txs";
+const AIRDROP_CONTRACT_ADDRESS = "0x9D841b25589EeC6E598D8FfE1d607e247F42269b"; // replace with your deployed address
+const TOKEN_CONTRACT_ADDRESS   = "0xBBcAEC10D4AFa4E6Dd43359A23e568E3305209AF";   // replace with your deployed address
+const BSCSCAN_TESTNET_URL      = "https://testnet.bscscan.com/tx/";
 
 // ====== ABIs (simplified placeholders) ======
 const AIRDROP_ABI = [{"inputs":[{"internalType":"address","name":"tokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"bool","name":"status","type":"bool"}],"name":"Blacklisted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Claimed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"by","type":"address"}],"name":"Paused","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"reward","type":"uint256"}],"name":"RewardAssigned","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"balance","type":"uint256"}],"name":"SnapshotTaken","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"by","type":"address"}],"name":"Unpaused","type":"event"},{"inputs":[],"name":"claim","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"deposit","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"hasClaimed","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isBlacklisted","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"maxPerWallet","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"pause","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"paused","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"rewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"},{"internalType":"bool","name":"status","type":"bool"}],"name":"setBlacklist","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"snapshots","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"takeSnapshot","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"token","outputs":[{"internalType":"contract IULMD","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalAirdrop","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unpause","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -61,18 +61,31 @@ async function connectWallet() {
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
 
+    const network = await provider.getNetwork();
+    if (network.chainId !== 97) {
+      // If not on BSC Testnet, prompt switch
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x61" }], // 97 in hex
+        });
+        location.reload();
+        return;
+      } catch (switchError) {
+        updateStatus("Please switch to BSC Testnet (ChainID 97).", "error");
+        return;
+      }
+    }
+
     // Hide "Not Connected" and show short address
     walletAddressElem.textContent = shortenAddress(userAddress);
-    networkNameElem.textContent = "";
+    networkNameElem.textContent = "BSC Testnet";
     connectWalletBtn.disabled = true;
     connectWalletBtn.textContent = "Connected";
     statusDotElem.classList.add("connected");
 
     airdrop = new ethers.Contract(AIRDROP_CONTRACT_ADDRESS, AIRDROP_ABI, signer);
     token   = new ethers.Contract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI, provider);
-
-    const network = await provider.getNetwork();
-    networkNameElem.textContent = network.chainId === 97 ? "Pulse Chain" : "Pulse Chain";
 
     await updateWalletInfo();
   } catch (err) {
@@ -158,7 +171,10 @@ async function handleTakeSnapshot() {
     const tx = await airdrop.takeSnapshot(userAddress);
     const receipt = await tx.wait();
 
-    updateStatus(`Snapshot taken! <a href="${LEDGER_EXPLORER_URL}${receipt.transactionHash}" target="_blank">View</a>`, "success");
+    updateStatus(
+      `Snapshot taken! <a href="${BSCSCAN_TESTNET_URL}${receipt.transactionHash}" target="_blank">View</a>`,
+      "success"
+    );
     await updateWalletInfo();
   } catch (err) {
     updateStatus("Snapshot failed.", "error");
@@ -176,7 +192,10 @@ async function handleClaimAirdrop() {
     const tx = await airdrop.claim();
     const receipt = await tx.wait();
 
-    updateStatus(`Airdrop claimed! <a href="${LEDGER_EXPLORER_URL}${receipt.transactionHash}" target="_blank">View</a>`, "success");
+    updateStatus(
+      `Airdrop claimed! <a href="${BSCSCAN_TESTNET_URL}${receipt.transactionHash}" target="_blank">View</a>`,
+      "success"
+    );
     await updateWalletInfo();
   } catch (err) {
     updateStatus("Claim failed.", "error");
